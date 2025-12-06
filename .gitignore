@@ -26,7 +26,9 @@ env/
 ENV/
 .venv
 
+# F1 Data directories (large files)
 computed_data/
+.fastf1-cache/
 
 # IDE
 .vscode/
