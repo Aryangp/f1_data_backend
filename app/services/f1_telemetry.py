@@ -1,6 +1,6 @@
 """F1 Race Telemetry Service"""
 import os
-import json
+import orjson
 import fastf1
 import fastf1.plotting
 import numpy as np
@@ -11,6 +11,11 @@ from app.utils.tyres import get_tyre_compound_int
 
 FPS = 25
 DT = 1 / FPS
+
+# Precision settings for data reduction
+POSITION_PRECISION = 1  # 1 decimal place for x, y coordinates
+DISTANCE_PRECISION = 1  # 1 decimal place for distances
+SPEED_PRECISION = 0  # 0 decimal places for speed (integers)
 
 
 def enable_cache():
@@ -43,7 +48,8 @@ def get_driver_colors(session) -> Dict[str, list]:
 def get_race_telemetry(
     session, 
     refresh_data: bool = False,
-    cache_dir: str = "computed_data"
+    cache_dir: str = "computed_data",
+    frame_skip: int = 1
 ) -> Dict[str, Any]:
     """
     Get race telemetry data for all drivers.
@@ -52,6 +58,7 @@ def get_race_telemetry(
         session: FastF1 session object
         refresh_data: If True, recompute data even if cached
         cache_dir: Directory to store cached data
+        frame_skip: Only include every Nth frame (1 = all frames, 2 = every other frame, etc.)
     
     Returns:
         Dictionary containing frames, driver_colors, and track_statuses
@@ -63,11 +70,16 @@ def get_race_telemetry(
         try:
             cache_file = f"{cache_dir}/{event_name}_race_telemetry.json"
             if os.path.exists(cache_file):
-                with open(cache_file, "r") as f:
-                    data = json.load(f)
+                with open(cache_file, "rb") as f:
+                    data = orjson.loads(f.read())
                     print("Loaded precomputed race telemetry data.")
+                    # Apply frame skipping if needed (cache always has full resolution)
+                    if frame_skip > 1:
+                        data["frames"] = data["frames"][::frame_skip]
+                        print(f"Applied frame skipping: {frame_skip} (reduced to {len(data['frames'])} frames)")
                     return data
-        except (FileNotFoundError, json.JSONDecodeError):
+        except (FileNotFoundError, orjson.JSONDecodeError, KeyError) as e:
+            print(f"Cache load failed: {e}, recomputing...")
             pass  # Need to compute from scratch
     
     drivers = session.drivers
@@ -254,19 +266,20 @@ def get_race_telemetry(
         })
     
     # 5. Build the frames + LIVE LEADERBOARD
+    # Always compute all frames for cache, apply frame_skip when returning
     frames = []
     for i, t in enumerate(timeline):
         snapshot = []
         for code, d in resampled_data.items():
             snapshot.append({
                 "code": code,
-                "dist": float(d["dist"][i]),
-                "x": float(d["x"][i]),
-                "y": float(d["y"][i]),
+                "dist": round(float(d["dist"][i]), DISTANCE_PRECISION),
+                "x": round(float(d["x"][i]), POSITION_PRECISION),
+                "y": round(float(d["y"][i]), POSITION_PRECISION),
                 "lap": int(round(d["lap"][i])),
-                "rel_dist": float(d["rel_dist"][i]),
-                "tyre": d["tyre"][i],
-                "speed": d['speed'][i],
+                "rel_dist": round(float(d["rel_dist"][i]), DISTANCE_PRECISION),
+                "tyre": int(round(d["tyre"][i])),
+                "speed": int(round(d['speed'][i])) if SPEED_PRECISION == 0 else round(float(d['speed'][i]), SPEED_PRECISION),
                 "gear": int(d['gear'][i]),
                 "drs": int(d['drs'][i]),
             })
@@ -293,7 +306,7 @@ def get_race_telemetry(
                 "y": car["y"],
                 "dist": car["dist"],
                 "lap": car["lap"],
-                "rel_dist": round(car["rel_dist"], 6),
+                "rel_dist": car["rel_dist"],
                 "tyre": car["tyre"],
                 "position": position,
                 "speed": car['speed'],
@@ -302,7 +315,7 @@ def get_race_telemetry(
             }
         
         frames.append({
-            "t": float(t),
+            "t": round(float(t), 2),  # Round time to 2 decimal places
             "lap": leader_lap,   # leader's lap at this time
             "drivers": frame_data,
         })
@@ -314,16 +327,24 @@ def get_race_telemetry(
     if not os.path.exists(cache_dir):
         os.makedirs(cache_dir)
     
-    # Save to file
-    result = {
+    # Prepare full resolution result for cache
+    full_result = {
         "frames": frames,
         "driver_colors": get_driver_colors(session),
         "track_statuses": formatted_track_statuses,
     }
     
-    with open(f"{cache_dir}/{event_name}_race_telemetry.json", "w") as f:
-        json.dump(result, f, indent=2)
+    # Save full resolution to cache with orjson (faster and more compact)
+    cache_file = f"{cache_dir}/{event_name}_race_telemetry.json"
+    with open(cache_file, "wb") as f:
+        f.write(orjson.dumps(full_result, option=orjson.OPT_SERIALIZE_NUMPY))
     
-    print("Saved Successfully!")
-    return result
+    print(f"Saved Successfully! ({len(frames)} frames)")
+    
+    # Apply frame skipping for return value
+    if frame_skip > 1:
+        full_result["frames"] = full_result["frames"][::frame_skip]
+        print(f"Applied frame skipping: {frame_skip} (reduced to {len(full_result['frames'])} frames)")
+    
+    return full_result
 

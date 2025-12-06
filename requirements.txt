@@ -9,6 +9,12 @@ fastf1>=3.1.0
 numpy>=1.24.0
 pandas>=2.0.0
 
+# Performance optimizations
+orjson>=3.9.0
+
+# WebSocket support
+websockets>=12.0
+
 # Optional: Database support (uncomment as needed)
 # sqlalchemy==2.0.23
 # alembic==1.12.1

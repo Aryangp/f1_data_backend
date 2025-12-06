@@ -8,6 +8,7 @@ class RaceTelemetryRequest(BaseModel):
     year: int = Field(..., description="F1 season year", ge=2018, le=2024)
     round_number: int = Field(..., description="Race round number", ge=1, le=24)
     refresh_data: bool = Field(False, description="Force recomputation of cached data")
+    frame_skip: int = Field(1, description="Only include every Nth frame (1=all, 2=every other, etc.)", ge=1, le=10)
 
 
 class DriverFrame(BaseModel):
@@ -17,7 +18,7 @@ class DriverFrame(BaseModel):
     dist: float
     lap: int
     rel_dist: float
-    tyre: float
+    tyre: int
     position: int
     speed: float
     gear: int

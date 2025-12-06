@@ -26,6 +26,8 @@ env/
 ENV/
 .venv
 
+computed_data/
+
 # IDE
 .vscode/
 .idea/
@@ -49,5 +51,5 @@ logs/
 # OS
 .DS_Store
 Thumbs.db
-computed_data/
+
 
