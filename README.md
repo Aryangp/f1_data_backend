@@ -76,22 +76,33 @@ A high-performance FastAPI backend for processing and serving Formula 1 race tel
     docker run -p 8000:8000 f1-race-backend
     ```
 
-### Vercel Deployment
+### AWS Deployment (Automated)
 
-1.  **Install Vercel CLI:**
+This project uses Terraform for infrastructure provisioning and GitHub Actions for CI/CD.
+
+#### 1. Resource Provisioning (One-time)
+1.  Navigate to the `terraform/` directory.
+2.  Initialize and apply Terraform:
     ```bash
-    npm i -g vercel
+    terraform init
+    terraform apply
     ```
+    Confirm with `yes`.
+3.  **IMPORTANT:** Note the outputs:
+    -   `instance_public_ip`: IP of your backend.
+    -   `ecr_repository_url`: Your Docker registry.
+    -   `private_key_pem`: Save this content to a file (e.g., `f1-key.pem`) to SSH into your instance if needed.
 
-2.  **Deploy:**
-    ```bash
-    vercel
-    ```
+#### 2. GitHub Secrets Configuration
+Go to your repository Settings > Secrets and variables > Actions, and add:
+-   `AWS_ACCESS_KEY_ID`: Your AWS Access Key.
+-   `AWS_SECRET_ACCESS_KEY`: Your AWS Secret Key.
+-   `AWS_REGION`: `us-east-1` (or your chosen region).
+-   `EC2_HOST`: The `instance_public_ip` from Terraform.
+-   `EC2_SSH_KEY`: The content of `private_key_pem` from Terraform.
 
-3.  **Environment Variables:**
-    Configure your environment variables in the Vercel dashboard.
-
-> **Note on Caching:** fastf1 cache and computed data are stored in `/tmp` when running on Vercel (Serverless Functions). This data is ephemeral and will be lost between cold starts. For persistent storage, ensure S3 integration is configured.
+#### 3. Deploy
+Push to the `main` branch. GitHub Actions will build the container, push to ECR, and auto-deploy to your EC2 instance.
 
 ## API Documentation
 

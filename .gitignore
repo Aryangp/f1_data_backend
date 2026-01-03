@@ -55,3 +55,14 @@ logs/
 Thumbs.db
 
 
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+*.lock.hcl
+terraform.tfstate.d
+terraform.tfvars
+terraform/terraform
+terraform/*.zip
+*.pem
