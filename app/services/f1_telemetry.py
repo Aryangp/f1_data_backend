@@ -7,6 +7,7 @@ import numpy as np
 from datetime import timedelta
 from typing import Dict, Any, Optional
 from app.utils.tyres import get_tyre_compound_int
+from app.services.f1_s3_bucket import  upload_telemetry_to_s3
 
 
 FPS = 25
@@ -333,6 +334,13 @@ def get_race_telemetry(
         "driver_colors": get_driver_colors(session),
         "track_statuses": formatted_track_statuses,
     }
+
+    # Extract year and round from session
+    year = session.event.EventDate.year
+    round_number = session.event.RoundNumber
+
+    # save the file to s3 
+    upload_telemetry_to_s3(full_result, year, round_number, frame_skip)
     
     # Save full resolution to cache with orjson (faster and more compact)
     cache_file = f"{cache_dir}/{event_name}_race_telemetry.json"

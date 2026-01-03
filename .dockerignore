@@ -1,0 +1,9 @@
+venv
+.git
+__pycache__
+*.pyc
+.env
+.fastf1-cache
+computed_data
+.pytest_cache
+debug_fastf1.py
