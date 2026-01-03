@@ -21,9 +21,16 @@ SPEED_PRECISION = 0  # 0 decimal places for speed (integers)
 
 def enable_cache():
     """Enable FastF1 cache"""
-    if not os.path.exists('.fastf1-cache'):
-        os.makedirs('.fastf1-cache')
-    fastf1.Cache.enable_cache('.fastf1-cache')
+    # Check if running on Vercel
+    if os.environ.get("VERCEL"):
+        cache_dir = "/tmp/fastf1-cache"
+        if not os.path.exists(cache_dir):
+            os.makedirs(cache_dir, exist_ok=True)
+        fastf1.Cache.enable_cache(cache_dir)
+    else:
+        if not os.path.exists('.fastf1-cache'):
+            os.makedirs('.fastf1-cache')
+        fastf1.Cache.enable_cache('.fastf1-cache')
 
 
 def load_race_session(year: int, round_number: int):
@@ -64,6 +71,9 @@ def get_race_telemetry(
     Returns:
         Dictionary containing frames, driver_colors, and track_statuses
     """
+    # Override cache_dir if on Vercel (read-only filesystem except /tmp)
+    if os.environ.get("VERCEL"):
+        cache_dir = "/tmp/computed_data"
     event_name = str(session).replace(' ', '_')
     
     # Check if this data has already been computed

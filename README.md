@@ -76,6 +76,23 @@ A high-performance FastAPI backend for processing and serving Formula 1 race tel
     docker run -p 8000:8000 f1-race-backend
     ```
 
+### Vercel Deployment
+
+1.  **Install Vercel CLI:**
+    ```bash
+    npm i -g vercel
+    ```
+
+2.  **Deploy:**
+    ```bash
+    vercel
+    ```
+
+3.  **Environment Variables:**
+    Configure your environment variables in the Vercel dashboard.
+
+> **Note on Caching:** fastf1 cache and computed data are stored in `/tmp` when running on Vercel (Serverless Functions). This data is ephemeral and will be lost between cold starts. For persistent storage, ensure S3 integration is configured.
+
 ## API Documentation
 
 Interactive API documentation is available at:
