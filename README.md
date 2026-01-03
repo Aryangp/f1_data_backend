@@ -1,104 +1,126 @@
-# FastAPI Backend
+# F1 Race Telemetry Backend
 
-A modern, production-ready FastAPI boilerplate backend application.
+A high-performance FastAPI backend for processing and serving Formula 1 race telemetry data. This application integrates with `fastf1` to provide real-time race data, utilizing efficient caching and WebSocket streaming for a seamless user experience.
 
 ## Features
 
-- ✅ FastAPI with async support
-- ✅ Structured project layout
-- ✅ Pydantic schemas for request/response validation
-- ✅ CORS middleware configuration
-- ✅ Health check endpoints
-- ✅ Environment-based configuration
-- ✅ Type hints throughout
-- ✅ Auto-generated API documentation
+-   ✅ **FastAPI**: Modern, fast (high-performance), web framework for building APIs with Python.
+-   ✅ **F1 Telemetry**: Real-time integration with `fastf1` to fetch and process race data.
+-   ✅ **WebSocket Support**: Real-time progress updates for long-running telemetry processing tasks.
+-   ✅ **Efficient Data Handling**:
+    -   Using `orjson` for fast JSON serialization.
+    -   Gzip compression for optimized network transfer.
+    -   NumPy integration for high-performance numerical operations.
+-   ✅ **Smart Caching**: Local caching system to minimize redundant computations and external API calls.
+-   ✅ **S3 Integration**: Capability to upload processed telemetry to AWS S3.
+-   ✅ **Docker Ready**: containerized for easy deployment and scalability.
+-   ✅ **Type Safety**: Comprehensive type hints using Pydantic schemas.
 
 ## Project Structure
 
 ```
 .
 ├── app/
-│   ├── __init__.py
-│   ├── main.py              # Main FastAPI application
-│   ├── config.py            # Application configuration
-│   ├── routers/             # API route handlers
-│   │   ├── __init__.py
+│   ├── main.py              # Main FastAPI application entry point
+│   ├── config.py            # Application settings and configuration
+│   ├── routers/             # API route definitions
+│   │   ├── f1.py            # F1 telemetry endpoints (HTTP & WS)
 │   │   ├── health.py        # Health check endpoints
-│   │   └── api.py           # Main API endpoints
-│   ├── schemas/             # Pydantic models
-│   │   ├── __init__.py
-│   │   └── example.py
-│   └── models/              # Database models (if needed)
-│       └── __init__.py
-├── requirements.txt
-├── .env.example
-├── .gitignore
-└── README.md
+│   │   └── api.py           # Example API endpoints
+│   ├── services/            # Business logic and external integrations
+│   │   ├── f1_telemetry.py  # Core telemetry processing logic
+│   │   ├── f1_s3_bucket.py  # S3 upload functionality
+│   │   └── ...
+│   ├── schemas/             # Pydantic models for data validation
+│   └── utils/               # Helper utilities
+├── computed_data/           # Directory for local cached telemetry files
+├── .fastf1-cache/           # FastF1 internal cache
+├── Dockerfile               # Docker build instructions
+├── requirements.txt         # Python dependencies
+└── README.md                # Project documentation
 ```
 
-## Setup
+## Setup & Installation
 
-1. **Create a virtual environment:**
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
+### Local Development
 
-2. **Install dependencies:**
-   ```bash
-   pip install -r requirements.txt
-   ```
+1.  **Create a virtual environment:**
+    ```bash
+    python -m venv venv
+    source venv/bin/activate  # On Windows: venv\Scripts\activate
+    ```
 
-3. **Set up environment variables:**
-   ```bash
-   cp .env.example .env
-   # Edit .env with your configuration
-   ```
+2.  **Install dependencies:**
+    ```bash
+    pip install -r requirements.txt
+    ```
 
-4. **Run the application:**
-   ```bash
-   uvicorn app.main:app --reload
-   ```
+3.  **Set up environment variables:**
+    Create a `.env` file (copy from `.env.example` if available) or set via shell.
 
-   The API will be available at:
-   - API: http://localhost:8000
-   - Docs: http://localhost:8000/docs
-   - ReDoc: http://localhost:8000/redoc
+4.  **Run the application:**
+    ```bash
+    uvicorn app.main:app --reload
+    ```
+    The API will be accessible at `http://localhost:8000`.
 
-## API Endpoints
+### Docker
 
-### Health Checks
-- `GET /health/` - Basic health check
-- `GET /health/ready` - Readiness check
-- `GET /health/live` - Liveness check
+1.  **Build the image:**
+    ```bash
+    docker build -t f1-race-backend .
+    ```
 
-### Example API
-- `GET /api/v1/` - Example GET endpoint
-- `POST /api/v1/example` - Example POST endpoint
-- `GET /api/v1/example/{item_id}` - Get example by ID
+2.  **Run the container:**
+    ```bash
+    docker run -p 8000:8000 f1-race-backend
+    ```
+
+## API Documentation
+
+Interactive API documentation is available at:
+-   **Swagger UI**: http://localhost:8000/docs
+-   **ReDoc**: http://localhost:8000/redoc
+
+### Key Endpoints
+
+#### F1 Telemetry
+
+-   **Get Race Telemetry (GET)**
+    `GET /f1/race-telemetry/{year}/{round_number}`
+    Fetches processed telemetry for a specific race. Supports `frame_skip` and `compress` parameters for optimization.
+
+-   **Get Race Telemetry (POST)**
+    `POST /f1/race-telemetry`
+    Alternative to GET, allowing complex request bodies.
+
+-   **Process Telemetry (WebSocket)**
+    `WS /f1/process-telemetry/{year}/{round_number}`
+    Connect to this endpoint to trigger telemetry processing and receive real-time progress updates (0-100%).
+    
+    **Messages:**
+    -   `{"type": "progress", "progress": 50.0, "message": "..."}`
+    -   `{"type": "complete", "data": {...}}`
+    -   `{"type": "error", "message": "..."}`
+
+-   **Get Available Sessions**
+    `GET /f1/sessions/{year}`
+    Returns a list of all race events for the specified season.
+
+#### Health
+
+-   `GET /health/` - Service health status
+-   `GET /health/live` - Liveness probe
+-   `GET /health/ready` - Readiness probe
 
 ## Development
 
-### Running with auto-reload:
+### Running tests
+(Add test instructions if pytest is configured)
 ```bash
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+pytest
 ```
-
-### Running in production:
-```bash
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
-```
-
-## Next Steps
-
-1. Add database models in `app/models/`
-2. Set up database connection in `app/config.py`
-3. Add authentication/authorization if needed
-4. Add more routers and schemas as your application grows
-5. Set up testing with pytest
-6. Configure CI/CD pipeline
 
 ## License
 
 MIT
-
