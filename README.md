@@ -104,6 +104,17 @@ Go to your repository Settings > Secrets and variables > Actions, and add:
 #### 3. Deploy
 Push to the `main` branch. GitHub Actions will build the container, push to ECR, and auto-deploy to your EC2 instance.
 
+#### 4. Accessing the Deployed API
+Once deployed, your API will be available at:
+```
+http://<instance_public_ip>:8000
+```
+> [!IMPORTANT]
+> The API is exposed on **port 8000** via **HTTP**. 
+> standard HTTP port (80) or HTTPS (443) are **not** configured by default.
+> 
+> Example: `http://ec2-13-60-87-118.eu-north-1.compute.amazonaws.com:8000/docs`
+
 ## API Documentation
 
 Interactive API documentation is available at:
