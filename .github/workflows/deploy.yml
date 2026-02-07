@@ -44,14 +44,17 @@ jobs:
           # Wait for any existing apt locks
           while sudo fuser /var/lib/dpkg/lock >/dev/null 2>&1; do sleep 1; done
           
-          # Install dependencies with non-interactive frontend
-          sudo DEBIAN_FRONTEND=noninteractive apt-get update
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y unzip curl
-          
-          # Install AWS CLI
-          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-          unzip -o awscliv2.zip
-          sudo ./aws/install --update
+          # Check if AWS CLI is installed
+          if ! command -v aws &> /dev/null; then
+            echo "AWS CLI not found. Installing dependencies and AWS CLI..."
+            sudo DEBIAN_FRONTEND=noninteractive apt-get update
+            sudo DEBIAN_FRONTEND=noninteractive apt-get install -y unzip curl
+            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+            unzip -o awscliv2.zip
+            sudo ./aws/install
+          else
+            echo "AWS CLI already installed. Skipping installation."
+          fi
           
           # Add local bin to PATH for this session
           export PATH=/usr/local/bin:$PATH
