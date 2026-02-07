@@ -12,6 +12,7 @@ from app.services.f1_telemetry import (
     get_race_telemetry
 )
 from app.services.f1_telemetry_processor import process_and_save_telemetry
+from app.services.mongo_logger import mongo_logger
 
 router = APIRouter()
 
@@ -40,6 +41,7 @@ async def get_race_telemetry_endpoint(
     try:
         # Load the race session
         session = load_race_session(request.year, request.round_number)
+        mongo_logger.info(f"Loaded race session for {request.year} Round {request.round_number}")
         
         # Get race telemetry
         telemetry_data = get_race_telemetry(
@@ -161,6 +163,7 @@ async def get_available_sessions(year: int):
             "events": schedule.to_dict('records') if not schedule.empty else []
         }
     except Exception as e:
+        mongo_logger.error(f"Error fetching schedule for {year}: {str(e)}", error=e)
         raise HTTPException(
             status_code=500,
             detail=f"Error fetching schedule: {str(e)}"
@@ -188,6 +191,7 @@ async def websocket_process_telemetry(websocket: WebSocket, year: int, round_num
         - Error: {"type": "error", "message": "..."}
     """
     await websocket.accept()
+    mongo_logger.info(f"WebSocket connected for {year} Round {round_number}")
     
     # Get query parameters
     frame_skip = int(websocket.query_params.get("frame_skip", "1"))
@@ -253,10 +257,13 @@ async def websocket_process_telemetry(websocket: WebSocket, year: int, round_num
         
         # Close connection after completion
         await websocket.close()
+        mongo_logger.info(f"WebSocket processing completed for {year} Round {round_number}", context=result)
         
     except WebSocketDisconnect:
+        mongo_logger.warning(f"WebSocket disconnected for {year} Round {round_number}")
         print("WebSocket disconnected")
     except Exception as e:
+        mongo_logger.error(f"WebSocket processing error for {year} Round {round_number}: {str(e)}", error=e)
         try:
             await websocket.send_json({
                 "type": "error",

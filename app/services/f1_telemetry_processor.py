@@ -6,6 +6,7 @@ from app.services.f1_telemetry import (
     load_race_session,
     get_race_telemetry
 )
+from app.services.mongo_logger import mongo_logger
 
 
 async def process_and_save_telemetry(
@@ -30,6 +31,8 @@ async def process_and_save_telemetry(
         # Send initial progress
         if progress_callback:
             await progress_callback("Initializing...", 0.0)
+        
+        mongo_logger.info(f"Starting telemetry processing logic for {year} Round {round_number}")
         
         # Load the race session
         if progress_callback:
@@ -72,6 +75,8 @@ async def process_and_save_telemetry(
         
         if progress_callback:
             await progress_callback("Complete!", 100.0)
+            
+        mongo_logger.info("Telemetry processing completed successfully", context=result)
         
         return result
         
@@ -83,6 +88,8 @@ async def process_and_save_telemetry(
             "error": str(e),
             "message": f"Error processing telemetry: {str(e)}"
         }
+        
+        mongo_logger.error(f"Error in telemetry processor: {str(e)}", error=e, context=error_result)
         
         if progress_callback:
             await progress_callback(f"Error: {str(e)}", 0.0)

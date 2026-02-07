@@ -8,6 +8,7 @@ from datetime import timedelta
 from typing import Dict, Any, Optional
 from app.utils.tyres import get_tyre_compound_int
 from app.services.f1_s3_bucket import  upload_telemetry_to_s3
+from app.services.mongo_logger import mongo_logger
 
 
 FPS = 25
@@ -84,6 +85,7 @@ def get_race_telemetry(
                 with open(cache_file, "rb") as f:
                     data = orjson.loads(f.read())
                     print("Loaded precomputed race telemetry data.")
+                    mongo_logger.info(f"Cache hit for {event_name}", context={"frame_skip": frame_skip})
                     # Apply frame skipping if needed (cache always has full resolution)
                     if frame_skip > 1:
                         data["frames"] = data["frames"][::frame_skip]
@@ -91,6 +93,7 @@ def get_race_telemetry(
                     return data
         except (FileNotFoundError, orjson.JSONDecodeError, KeyError) as e:
             print(f"Cache load failed: {e}, recomputing...")
+            mongo_logger.warning(f"Cache load failed or missing for {event_name}, recomputing...", error=e)
             pass  # Need to compute from scratch
     
     drivers = session.drivers
@@ -107,6 +110,7 @@ def get_race_telemetry(
     for driver_no in drivers:
         code = driver_codes[driver_no]
         print("Getting telemetry for driver:", code)
+        mongo_logger.debug(f"Processing telemetry for driver {code}")
         laps_driver = session.laps.pick_drivers(driver_no)
         
         if laps_driver.empty:
@@ -350,7 +354,11 @@ def get_race_telemetry(
     round_number = session.event.RoundNumber
 
     # save the file to s3 
-    upload_telemetry_to_s3(full_result, year, round_number, frame_skip)
+    s3_success = upload_telemetry_to_s3(full_result, year, round_number, frame_skip)
+    if s3_success:
+        mongo_logger.info(f"Uploaded telemetry to S3 for {event_name}")
+    else:
+        mongo_logger.error(f"Failed to upload telemetry to S3 for {event_name}")
     
     # Save full resolution to cache with orjson (faster and more compact)
     cache_file = f"{cache_dir}/{event_name}_race_telemetry.json"

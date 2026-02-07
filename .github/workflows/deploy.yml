@@ -81,4 +81,6 @@ jobs:
             -e AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
             -e AWS_REGION=${{ secrets.AWS_REGION }} \
             -e S3_BUCKET_NAME=${{ secrets.S3_BUCKET_NAME }} \
+            -e MONGO_URI=${{ secrets.MONGO_URI }} \
+            -e MONGO_DB_NAME=${{ secrets.MONGO_DB_NAME }} \
             ${{ steps.login-ecr.outputs.registry }}/f1-race-backend:latest

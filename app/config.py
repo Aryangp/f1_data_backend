@@ -27,6 +27,10 @@ class Settings(BaseSettings):
     AWS_SECRET_ACCESS_KEY: str
     AWS_REGION: str = "us-east-1"
     S3_BUCKET_NAME: str
+
+    # MongoDB Settings
+    MONGO_URI: str = "mongodb://localhost:27017"
+    MONGO_DB_NAME: str = "f1_logs"
     
     class Config:
         env_file = ".env"
