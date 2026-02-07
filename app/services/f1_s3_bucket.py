@@ -33,6 +33,7 @@ def upload_telemetry_to_s3(data: dict, year: int, round_num: int, frame_skip: in
             Body=compressed_data,
             ContentType='application/json',
             ContentEncoding='gzip'  # Important: Tells browser it's gzipped
+            
         )
         return True
     except ClientError as e:
