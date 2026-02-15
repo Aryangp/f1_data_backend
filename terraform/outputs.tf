@@ -1,6 +1,6 @@
 output "instance_public_ip" {
-  description = "Public IP address of the EC2 instance"
-  value       = aws_instance.f1_app_server.public_ip
+  description = "Public Elastic IP address of the EC2 instance"
+  value       = aws_eip.f1_eip.public_ip
 }
 
 output "ecr_repository_url" {

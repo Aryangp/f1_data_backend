@@ -102,3 +102,9 @@ resource "aws_instance" "f1_app_server" {
     Name = "F1RaceBackend"
   }
 }
+
+# Elastic IP
+resource "aws_eip" "f1_eip" {
+  instance = aws_instance.f1_app_server.id
+  domain   = "vpc"
+}
