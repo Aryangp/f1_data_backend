@@ -5,7 +5,7 @@ import fastf1
 import fastf1.plotting
 import numpy as np
 from datetime import timedelta
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Callable
 from app.utils.tyres import get_tyre_compound_int
 from app.services.f1_s3_bucket import  upload_telemetry_to_s3
 from app.services.mongo_logger import mongo_logger
@@ -58,7 +58,8 @@ def get_race_telemetry(
     session, 
     refresh_data: bool = False,
     cache_dir: str = "computed_data",
-    frame_skip: int = 1
+    frame_skip: int = 1,
+    progress_callback: Optional[Callable[[str, float], None]] = None
 ) -> Dict[str, Any]:
     """
     Get race telemetry data for all drivers.
@@ -67,7 +68,8 @@ def get_race_telemetry(
         session: FastF1 session object
         refresh_data: If True, recompute data even if cached
         cache_dir: Directory to store cached data
-        frame_skip: Only include every Nth frame (1 = all frames, 2 = every other frame, etc.)
+        frame_skip: Only include every Nth frame
+        progress_callback: Function to report progress (message, percentage)
     
     Returns:
         Dictionary containing frames, driver_colors, and track_statuses
@@ -107,6 +109,13 @@ def get_race_telemetry(
     global_t_max = None
     
     # 1. Get all of the drivers telemetry data
+    total_drivers = len(drivers)
+    for i, driver_no in enumerate(drivers):
+        # Progress update (30% to 70% range for data fetching)
+        if progress_callback:
+            progress = 30.0 + (i / total_drivers * 40.0)
+            progress_callback(f"Processing driver {i+1}/{total_drivers}...", progress)
+            
     for driver_no in drivers:
         code = driver_codes[driver_no]
         print("Getting telemetry for driver:", code)
@@ -211,6 +220,9 @@ def get_race_telemetry(
         global_t_max = t_max if global_t_max is None else max(global_t_max, t_max)
     
     # 2. Create a timeline (start from zero)
+    if progress_callback:
+        progress_callback("Building race timeline...", 75.0)
+        
     timeline = np.arange(global_t_min, global_t_max, DT) - global_t_min
     
     # 3. Resample each driver's telemetry (x, y, gap) onto the common timeline
@@ -281,6 +293,9 @@ def get_race_telemetry(
         })
     
     # 5. Build the frames + LIVE LEADERBOARD
+    if progress_callback:
+        progress_callback("Generating leaderboard frames...", 80.0)
+        
     # Always compute all frames for cache, apply frame_skip when returning
     frames = []
     for i, t in enumerate(timeline):
@@ -354,6 +369,9 @@ def get_race_telemetry(
     round_number = session.event.RoundNumber
 
     # save the file to s3 
+    if progress_callback:
+        progress_callback("Uploading to S3...", 95.0)
+        
     s3_success = upload_telemetry_to_s3(full_result, year, round_number, frame_skip)
     if s3_success:
         mongo_logger.info(f"Uploaded telemetry to S3 for {event_name}")

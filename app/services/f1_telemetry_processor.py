@@ -43,6 +43,14 @@ async def process_and_save_telemetry(
         
         if progress_callback:
             await progress_callback("Processing telemetry data...", 30.0)
+            
+        # Bridge async progress callback to sync function
+        # Capture the loop from the current (main) thread before offloading
+        loop = asyncio.get_running_loop()
+        
+        def sync_progress_callback(msg, pct):
+            if progress_callback:
+                asyncio.run_coroutine_threadsafe(progress_callback(msg, pct), loop)
         
         # Process telemetry (this will save to file automatically)
         # Force refresh to ensure we process and save
@@ -52,7 +60,8 @@ async def process_and_save_telemetry(
             session,
             True,  # refresh_data
             "computed_data",  # cache_dir
-            frame_skip
+            frame_skip,
+            sync_progress_callback
         )
         
         if progress_callback:
